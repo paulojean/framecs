@@ -111,4 +111,6 @@
     (->> (framecs/frame-properties 1)
          (modify-frame-parameters (selected-frame)))))
 
+(provide 'framecs.el)
+
 ;;; framecs.el ends here
