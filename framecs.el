@@ -38,23 +38,6 @@
        framecs/frame-properties
        (modify-frame-parameters frame)))
 
-(defun framecs/delete-frame ()
-  (let* ((frames (framecs/list-frames))
-         (total-frames (length frames))
-         (current-frame (selected-frame))
-         (current-index (framecs/frame-index current-frame)))
-    (->> (framecs/frame-properties -1)
-         (modify-frame-parameters current-frame))
-    (->> frames
-         (-map 'frame-parameters)
-         (-map (lambda (params) (assq 'framecs-index params)))
-         (-map 'cdr)
-         (-sort #'<)
-         (-drop current-index)
-         (-map (lambda (index) (framecs/frame-by-index frames index)))
-         (-map 'framecs/shift-to-left))
-    (delete-frame current-frame)))
-
 (defun framecs/next-frame-index (frame op)
   (->> frame
        frame-parameters
@@ -95,6 +78,24 @@
   (->> frame
        frame-parameters
        (assq 'framecs-index)))
+
+(defun framecs/delete-frame ()
+  (interactive)
+  (let* ((frames (framecs/list-frames))
+         (total-frames (length frames))
+         (current-frame (selected-frame))
+         (current-index (framecs/frame-index current-frame)))
+    (->> (framecs/frame-properties -1)
+         (modify-frame-parameters current-frame))
+    (->> frames
+         (-map 'frame-parameters)
+         (-map (lambda (params) (assq 'framecs-index params)))
+         (-map 'cdr)
+         (-sort #'<)
+         (-drop current-index)
+         (-map (lambda (index) (framecs/frame-by-index frames index)))
+         (-map 'framecs/shift-to-left))
+    (delete-frame current-frame)))
 
 (defun framecs/new-frame ()
   (interactive)
