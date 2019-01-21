@@ -2,6 +2,21 @@
 
 (require 'dash)
 
+(defun framecs/update-frame-properties! (frame properties)
+  (modify-frame-parameters frame properties))
+
+(defun framecs/frame-name-property (name)
+  `((name . ,name)))
+
+(defun framecs/buffer-directory-name (buffer)
+  (let ((dir-structure (-> buffer
+                           expand-file-name
+                           (split-string "/"))))
+    (nth (-> dir-structure
+             length
+             (- 2))
+         dir-structure)))
+
 (defun framecs/frame-properties (index)
   `((framecs-index . ,index)))
 
@@ -27,9 +42,6 @@
                   (framecs/has-index name f)))
        first))
 
-(defun framecs/update-frame-properties (frame properties)
-  (modify-frame-parameters frame properties))
-
 (defun framecs/frame-index (frame)
   (->> frame
        frame-parameters
@@ -41,7 +53,7 @@
        framecs/frame-index
        ((lambda (index) (- index 1)))
        framecs/frame-properties
-       (modify-frame-parameters frame)))
+       (framecs/update-frame-properties! frame)))
 
 (defun framecs/next-frame-index (frame op)
   (->> frame
@@ -84,7 +96,7 @@
          (total-frames (length frames))
          (current-index (framecs/frame-index current-frame)))
     (->> (framecs/frame-properties -1)
-         (modify-frame-parameters current-frame))
+         (framecs/update-frame-properties! current-frame))
     (->> frames
          (-map 'frame-parameters)
          (-map (lambda (params) (assq 'framecs-index params)))
@@ -98,6 +110,19 @@
 (defun framecs/delete-non-framecs-frame (frame)
   (delete-frame frame))
 
+;;;#autoload
+(defun framecs/update-frame-name ()
+  (interactive)
+  (let* ((default-name (framecs/buffer-directory-name buffer-file-name))
+         (name (read-string (format "Rename frame to (default %s):" default-name)
+                            nil
+                            nil
+                            default-name)))
+    (->> name
+         framecs/frame-name-property
+         (framecs/update-frame-properties! (selected-frame)))))
+
+;;;#autoload
 (defun framecs/delete-frame ()
   (interactive)
   (let ((current-frame (selected-frame)))
@@ -105,6 +130,7 @@
       (framecs/delete-framecs-frame current-frame)
       (framecs/delete-non-framecs-frame))))
 
+;;;#autoload
 (defun framecs/new-frame ()
   (interactive)
   (->> (framecs/list-frames)
@@ -114,12 +140,13 @@
        new-frame
        select-frame))
 
+;;;#autoload
 (defun framecs/start-framecs ()
   (interactive)
   (unless (framecs/list-frames)
     (->> (framecs/frame-properties 1)
-         (modify-frame-parameters (selected-frame)))))
+         (framecs/update-frame-properties! (selected-frame)))))
 
-(provide 'framecs.el)
+(provide 'framecs)
 
 ;;; framecs.el ends here
