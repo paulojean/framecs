@@ -5,6 +5,11 @@
 (defun framecs/frame-properties (index)
   `((framecs-index . ,index)))
 
+(defun framecs/is-framecs-frame (frame)
+  (->> frame
+       frame-parameters
+       (assq 'framecs-index)))
+
 (defun framecs/list-frames ()
   (->> (frame-list)
        (-filter 'framecs/is-framecs-frame)))
@@ -74,16 +79,9 @@
   (interactive)
   (framecs/go-to-neighbor #'+ #'framecs/next-frame-name))
 
-(defun framecs/is-framecs-frame (frame)
-  (->> frame
-       frame-parameters
-       (assq 'framecs-index)))
-
-(defun framecs/delete-frame ()
-  (interactive)
+(defun framecs/delete-framecs-frame (current-frame)
   (let* ((frames (framecs/list-frames))
          (total-frames (length frames))
-         (current-frame (selected-frame))
          (current-index (framecs/frame-index current-frame)))
     (->> (framecs/frame-properties -1)
          (modify-frame-parameters current-frame))
@@ -96,6 +94,16 @@
          (-map (lambda (index) (framecs/frame-by-index frames index)))
          (-map 'framecs/shift-to-left))
     (delete-frame current-frame)))
+
+(defun framecs/delete-non-framecs-frame (frame)
+  (delete-frame frame))
+
+(defun framecs/delete-frame ()
+  (interactive)
+  (let ((current-frame (selected-frame)))
+    (if (framecs/is-framecs-frame current-frame)
+      (framecs/delete-framecs-frame current-frame)
+      (framecs/delete-non-framecs-frame))))
 
 (defun framecs/new-frame ()
   (interactive)
