@@ -1,10 +1,10 @@
 (ns framecs.core)
 
-(def groups
+(def workspaces
   (atom []))
 
-(defn group-filter-fn [group-id]
-  (comp (partial = group-id)
+(defn workspace-filter-fn [workspace-id]
+  (comp (partial = workspace-id)
         first))
 
 (defn move-to-index [coll filter-fn id index]
@@ -15,12 +15,12 @@
         (concat item)
         (concat (->> sub-coll (drop index))))))
 
-(defn move-group-to-index [groups group-id index]
-  (move-to-index groups group-filter-fn group-id index))
+(defn move-workspace-to-index [workspaces workspace-id index]
+  (move-to-index workspaces workspace-filter-fn workspace-id index))
 
-(defn group-exists? [group groups]
-  (->> groups
-       (filter (group-filter-fn group))
+(defn workspace-exists? [workspace workspaces]
+  (->> workspaces
+       (filter (workspace-filter-fn workspace))
        first))
 
 (defn item-id->index [id filter-fn coll]
@@ -31,24 +31,24 @@
        first
        (#(or % (count coll)))))
 
-(defn update-group [group groups]
-  (let [is-empty-group? (-> group second count (<= 0))
-        index (item-id->index (first group) group-filter-fn groups)]
-    (if is-empty-group?
-      (remove (comp (partial = (first group)) first) groups)
-      (assoc groups index group))))
+(defn update-workspace [workspace workspaces]
+  (let [is-empty-workspace? (-> workspace second count (<= 0))
+        index (item-id->index (first workspace) workspace-filter-fn workspaces)]
+    (if is-empty-workspace?
+      (remove (comp (partial = (first workspace)) first) workspaces)
+      (assoc workspaces index workspace))))
 
-(defn add-frame-to-group [group frame-id]
-  (-> group
+(defn add-frame-to-workspace [workspace frame-id]
+  (-> workspace
       second
       (conj frame-id)
-      ((partial assoc group 1))))
+      ((partial assoc workspace 1))))
 
-(defn remove-frame-from-group [group frame-id]
-  (->> group
+(defn remove-frame-from-workspace [workspace frame-id]
+  (->> workspace
        second
        (remove (partial = frame-id))
-       (assoc group 1)))
+       (assoc workspace 1)))
 
 (defn next-neighbor [frame-id frames]
   (->> frames
@@ -56,37 +56,37 @@
        second
        (#(or % (first frames)))))
 
-(defn frames-for-neighbor [groups sort-fn group-id frame-id]
-  (->> groups
-       (filter (comp (partial = group-id) first))
+(defn frames-for-neighbor [workspaces sort-fn workspace-id frame-id]
+  (->> workspaces
+       (filter (comp (partial = workspace-id) first))
        first
        second
        sort-fn
        (next-neighbor frame-id)))
 
-(defn get-next-frame [group-id frame-id]
-  (frames-for-neighbor @groups
+(defn get-next-frame [workspace-id frame-id]
+  (frames-for-neighbor @workspaces
                        identity
-                       group-id
+                       workspace-id
                        frame-id))
 
-(defn get-previous-frame [group-id frame-id]
-  (frames-for-neighbor @groups
+(defn get-previous-frame [workspace-id frame-id]
+  (frames-for-neighbor @workspaces
                        reverse
-                       group-id
+                       workspace-id
                        frame-id))
 
-(defn new-frame! [group-id frame-id]
-  (swap! groups (fn [gs]
-                  (-> group-id
-                      (group-exists? gs)
-                      (or [group-id []])
-                      (add-frame-to-group frame-id)
-                      (update-group gs)))))
+(defn new-frame! [workspace-id frame-id]
+  (swap! workspaces (fn [gs]
+                  (-> workspace-id
+                      (workspace-exists? gs)
+                      (or [workspace-id []])
+                      (add-frame-to-workspace frame-id)
+                      (update-workspace gs)))))
 
-(defn remove-frame! [group-id frame-id]
-  (swap! groups (fn [gs]
-                  (some-> group-id
-                          (group-exists? gs)
-                          (remove-frame-from-group frame-id)
-                          (update-group gs)))))
+(defn remove-frame! [workspace-id frame-id]
+  (swap! workspaces (fn [gs]
+                  (some-> workspace-id
+                          (workspace-exists? gs)
+                          (remove-frame-from-workspace frame-id)
+                          (update-workspace gs)))))

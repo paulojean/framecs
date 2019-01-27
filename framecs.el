@@ -44,9 +44,9 @@
              (- 2))
          dir-structure)))
 
-(defun framecs/frame-properties (group-id frame-id)
-  "Format group and frame id"
-  `((framecs-group . ,group-id)
+(defun framecs/frame-properties (workspace-id frame-id)
+  "Format workspace and frame id"
+  `((framecs-workspace . ,workspace-id)
     (framecs-id . ,frame-id)))
 
 (defun framecs/is-framecs-frame (frame)
@@ -58,10 +58,10 @@
   (->> (frame-list)
        (-filter 'framecs/is-framecs-frame)))
 
-(defun framecs/frame-group (frame)
+(defun framecs/frame-workspace (frame)
   (->> frame
        frame-parameters
-       (assq 'framecs-group)
+       (assq 'framecs-workspace)
        cdr))
 
 (defun framecs/frame-id (frame)
@@ -84,18 +84,18 @@
 (defun framecs/go-to-neighbor (target-frame-fn)
   (let* ((frames (framecs/list-frames))
          (current-frame (selected-frame))
-         (group-id (framecs/frame-group current-frame))
+         (workspace-id (framecs/frame-workspace current-frame))
          (frame-id (framecs/frame-id current-frame))
-         (target-frame-id (funcall target-frame-fn group-id frame-id)))
+         (target-frame-id (funcall target-frame-fn workspace-id frame-id)))
     (->> target-frame-id
          (framecs/frame-by-id frames)
          select-frame)))
 
 (defun framecs/delete-framecs-frame (current-frame)
-  (let ((group-id (framecs/frame-group current-frame))
+  (let ((workspace-id (framecs/frame-workspace current-frame))
         (frame-id (framecs/frame-id current-frame)))
     (delete-frame current-frame)
-    (framecs-remove-frame! group-id frame-id)))
+    (framecs-remove-frame! workspace-id frame-id)))
 
 (defun framecs/delete-non-framecs-frame (frame)
   (delete-frame frame))
@@ -133,22 +133,22 @@
 ;;;#autoload
 (defun framecs/new-frame ()
   (interactive)
-  (let ((group-id (framecs/frame-group (selected-frame)))
+  (let ((workspace-id (framecs/frame-workspace (selected-frame)))
         (frame-id (framecs/gen-uuid)))
-    (-> (framecs/frame-properties group-id frame-id)
+    (-> (framecs/frame-properties workspace-id frame-id)
         new-frame
         select-frame)
-    (framecs-new-frame! group-id frame-id)))
+    (framecs-new-frame! workspace-id frame-id)))
 
 ;;;#autoload
 (defun framecs/start-framecs ()
   (interactive)
   (unless (framecs/list-frames)
-    (let ((group-id (framecs/gen-uuid))
+    (let ((workspace-id (framecs/gen-uuid))
           (frame-id (framecs/gen-uuid)))
-      (->> (framecs/frame-properties group-id frame-id)
+      (->> (framecs/frame-properties workspace-id frame-id)
            (framecs/update-frame-properties! (selected-frame)))
-      (framecs-new-frame! group-id frame-id))))
+      (framecs-new-frame! workspace-id frame-id))))
 
 (provide 'framecs)
 
