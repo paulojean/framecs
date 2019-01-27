@@ -2,6 +2,33 @@
 
 (require 'dash)
 
+(require 'clomacs)
+
+(clomacs-defun framecs-new-frame!
+               framecs.core/new-frame!
+               :lib-name "framecs"
+               :namespace framecs.core
+               :doc "Add frame to list")
+(clomacs-defun framecs-remove-frame!
+               framecs.core/remove-frame!
+               :lib-name "framecs"
+               :namespace framecs.core
+               :doc "Remove frame from list")
+(clomacs-defun framecs-get-next-frame
+               framecs.core/get-next-frame
+               :lib-name "framecs"
+               :namespace framecs.core
+               :doc "Get next frame id")
+(clomacs-defun framecs-get-previous-frame
+               framecs.core/get-previous-frame
+               :lib-name "framecs"
+               :namespace framecs.core
+               :doc "Get previous frame id")
+
+(defun framecs/gen-uuid ()
+  (->> (shell-command-to-string "uuidgen")
+       (replace-regexp-in-string "\n" "")))
+
 (defun framecs/update-frame-properties! (frame properties)
   (modify-frame-parameters frame properties))
 
@@ -17,95 +44,66 @@
              (- 2))
          dir-structure)))
 
-(defun framecs/frame-properties (index)
-  `((framecs-index . ,index)))
+(defun framecs/frame-properties (group-id frame-id)
+  "Format group and frame id"
+  `((framecs-group . ,group-id)
+    (framecs-id . ,frame-id)))
 
 (defun framecs/is-framecs-frame (frame)
   (->> frame
        frame-parameters
-       (assq 'framecs-index)))
+       (assq 'framecs-id)))
 
 (defun framecs/list-frames ()
   (->> (frame-list)
        (-filter 'framecs/is-framecs-frame)))
 
-(defun framecs/has-index (index frame)
+(defun framecs/frame-group (frame)
   (->> frame
        frame-parameters
-       (assq 'framecs-index)
-       cdr
-       (equal index)))
-
-(defun framecs/frame-by-index (frames name)
-  (->> frames
-       (-filter (lambda (f)
-                  (framecs/has-index name f)))
-       first))
-
-(defun framecs/frame-index (frame)
-  (->> frame
-       frame-parameters
-       (assq 'framecs-index)
+       (assq 'framecs-group)
        cdr))
 
-(defun framecs/shift-to-left (frame)
-  (->> frame
-       framecs/frame-index
-       ((lambda (index) (- index 1)))
-       framecs/frame-properties
-       (framecs/update-frame-properties! frame)))
-
-(defun framecs/next-frame-index (frame op)
+(defun framecs/frame-id (frame)
   (->> frame
        frame-parameters
-       (assq 'framecs-index)
-       cdr
-       ((lambda (index)
-          (funcall op index 1)))))
+       (assq 'framecs-id)
+       cdr))
+ 
+(defun framecs/has-id (id frame)
+  (->> frame
+       framecs/frame-id
+       (equal id)))
 
-(defun framecs/next-frame-name (total-frames next-frame-index)
-  (if (> next-frame-index total-frames)
-    1
-    next-frame-index))
+(defun framecs/frame-by-id (frames id)
+  (->> frames
+       (-filter (lambda (f)
+                  (framecs/has-id id f)))
+       first))
 
-(defun framecs/previous-frame-name (total-frames next-frame-index)
-  (if (< next-frame-index 1)
-    total-frames
-    next-frame-index))
-
-(defun framecs/go-to-neighbor (op frame-index-fn)
+(defun framecs/go-to-neighbor (target-frame-fn)
   (let* ((frames (framecs/list-frames))
-         (total-frames (length frames))
-         (next-frame-index (framecs/next-frame-index (selected-frame)
-                                                      op)))
-    (->> next-frame-index
-         (funcall frame-index-fn total-frames)
-         (framecs/frame-by-index frames)
+         (current-frame (selected-frame))
+         (group-id (framecs/frame-group current-frame))
+         (frame-id (framecs/frame-id current-frame))
+         (target-frame-id (funcall target-frame-fn group-id frame-id)))
+    (->> target-frame-id
+         (framecs/frame-by-id frames)
          select-frame)))
 
 (defun framecs/go-to-previous ()
   (interactive)
-  (framecs/go-to-neighbor #'- #'framecs/previous-frame-name))
+  (framecs/go-to-neighbor #'framecs-get-previous-frame))
 
 (defun framecs/go-to-next ()
   (interactive)
-  (framecs/go-to-neighbor #'+ #'framecs/next-frame-name))
+  (framecs/go-to-neighbor #'framecs-get-next-frame))
 
 (defun framecs/delete-framecs-frame (current-frame)
-  (let* ((frames (framecs/list-frames))
-         (total-frames (length frames))
-         (current-index (framecs/frame-index current-frame)))
-    (->> (framecs/frame-properties -1)
-         (framecs/update-frame-properties! current-frame))
-    (->> frames
-         (-map 'frame-parameters)
-         (-map (lambda (params) (assq 'framecs-index params)))
-         (-map 'cdr)
-         (-sort #'<)
-         (-drop current-index)
-         (-map (lambda (index) (framecs/frame-by-index frames index)))
-         (-map 'framecs/shift-to-left))
-    (delete-frame current-frame)))
+  (let ((group-id (framecs/frame-group current-frame))
+        (frame-id (framecs/frame-id current-frame)))
+    (delete-frame current-frame)
+    (framecs-remove-frame! group-id frame-id)))
 
 (defun framecs/delete-non-framecs-frame (frame)
   (delete-frame frame))
@@ -133,19 +131,22 @@
 ;;;#autoload
 (defun framecs/new-frame ()
   (interactive)
-  (->> (framecs/list-frames)
-       length
-       (+ 1)
-       framecs/frame-properties
-       new-frame
-       select-frame))
+  (let ((group-id (framecs/frame-group (selected-frame)))
+        (frame-id (framecs/gen-uuid)))
+    (-> (framecs/frame-properties group-id frame-id)
+        new-frame
+        select-frame)
+    (framecs-new-frame! group-id frame-id)))
 
 ;;;#autoload
 (defun framecs/start-framecs ()
   (interactive)
   (unless (framecs/list-frames)
-    (->> (framecs/frame-properties 1)
-         (framecs/update-frame-properties! (selected-frame)))))
+    (let ((group-id (framecs/gen-uuid))
+          (frame-id (framecs/gen-uuid)))
+      (->> (framecs/frame-properties group-id frame-id)
+           (framecs/update-frame-properties! (selected-frame)))
+      (framecs-new-frame! group-id frame-id))))
 
 (provide 'framecs)
 
