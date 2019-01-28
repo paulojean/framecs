@@ -84,9 +84,8 @@
 (defun framecs/go-to-neighbor (target-frame-fn)
   (let* ((frames (framecs/list-frames))
          (current-frame (selected-frame))
-         (workspace-id (framecs/frame-workspace current-frame))
          (frame-id (framecs/frame-id current-frame))
-         (target-frame-id (funcall target-frame-fn workspace-id frame-id)))
+         (target-frame-id (funcall target-frame-fn frame-id)))
     (->> target-frame-id
          (framecs/frame-by-id frames)
          select-frame)))

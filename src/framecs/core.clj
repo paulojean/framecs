@@ -23,6 +23,12 @@
        (filter (workspace-filter-fn workspace))
        first))
 
+(defn frame-id->workspace [frame-id workspaces]
+  (->> workspaces
+       (filter (fn [[_ frames]]
+                 (some (partial = frame-id) frames)))
+       first))
+
 (defn item-id->index [id filter-fn coll]
   (->> coll
        (keep-indexed (fn [idx x]
@@ -56,33 +62,30 @@
        second
        (#(or % (first frames)))))
 
-(defn frames-for-neighbor [workspaces sort-fn workspace-id frame-id]
-  (->> workspaces
-       (filter (comp (partial = workspace-id) first))
-       first
-       second
-       sort-fn
-       (next-neighbor frame-id)))
+(defn frames-for-neighbor [workspaces sort-fn frame-id]
+  (some->> workspaces
+           (frame-id->workspace frame-id)
+           second
+           sort-fn
+           (next-neighbor frame-id)))
 
-(defn get-next-frame [workspace-id frame-id]
+(defn get-next-frame [frame-id]
   (frames-for-neighbor @workspaces
                        identity
-                       workspace-id
                        frame-id))
 
-(defn get-previous-frame [workspace-id frame-id]
+(defn get-previous-frame [frame-id]
   (frames-for-neighbor @workspaces
                        reverse
-                       workspace-id
                        frame-id))
 
 (defn new-frame! [workspace-id frame-id]
   (swap! workspaces (fn [gs]
-                  (-> workspace-id
-                      (workspace-exists? gs)
-                      (or [workspace-id []])
-                      (add-frame-to-workspace frame-id)
-                      (update-workspace gs)))))
+                      (-> workspace-id
+                          (workspace-exists? gs)
+                          (or [workspace-id []])
+                          (add-frame-to-workspace frame-id)
+                          (update-workspace gs)))))
 
 (defn remove-frame! [workspace-id frame-id]
   (swap! workspaces (fn [gs]
