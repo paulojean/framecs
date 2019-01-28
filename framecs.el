@@ -91,10 +91,9 @@
          select-frame)))
 
 (defun framecs/delete-framecs-frame (current-frame)
-  (let ((workspace-id (framecs/frame-workspace current-frame))
-        (frame-id (framecs/frame-id current-frame)))
+  (let ((frame-id (framecs/frame-id current-frame)))
     (delete-frame current-frame)
-    (framecs-remove-frame! workspace-id frame-id)))
+    (framecs-remove-frame! frame-id)))
 
 (defun framecs/delete-non-framecs-frame (frame)
   (delete-frame frame))

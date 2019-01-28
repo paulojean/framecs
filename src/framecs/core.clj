@@ -23,7 +23,7 @@
        (filter (workspace-filter-fn workspace))
        first))
 
-(defn frame-id->workspace [frame-id workspaces]
+(defn frame-id->workspace [workspaces frame-id]
   (->> workspaces
        (filter (fn [[_ frames]]
                  (some (partial = frame-id) frames)))
@@ -41,7 +41,9 @@
   (let [is-empty-workspace? (-> workspace second count (<= 0))
         index (item-id->index (first workspace) workspace-filter-fn workspaces)]
     (if is-empty-workspace?
-      (remove (comp (partial = (first workspace)) first) workspaces)
+      (->> workspaces
+           (remove (comp (partial = (first workspace)) first))
+           (into []))
       (assoc workspaces index workspace))))
 
 (defn add-frame-to-workspace [workspace frame-id]
@@ -54,20 +56,21 @@
   (->> workspace
        second
        (remove (partial = frame-id))
+       (into [])
        (assoc workspace 1)))
 
-(defn next-neighbor [frame-id frames]
+(defn next-neighbor [frames frame-id]
   (->> frames
        (drop-while (partial not= frame-id))
        second
        (#(or % (first frames)))))
 
 (defn frames-for-neighbor [workspaces sort-fn frame-id]
-  (some->> workspaces
-           (frame-id->workspace frame-id)
-           second
-           sort-fn
-           (next-neighbor frame-id)))
+  (some-> workspaces
+          (frame-id->workspace frame-id)
+          second
+          sort-fn
+          (next-neighbor frame-id)))
 
 (defn get-next-frame [frame-id]
   (frames-for-neighbor @workspaces
@@ -87,9 +90,9 @@
                           (add-frame-to-workspace frame-id)
                           (update-workspace gs)))))
 
-(defn remove-frame! [workspace-id frame-id]
+(defn remove-frame! [frame-id]
   (swap! workspaces (fn [gs]
-                  (some-> workspace-id
-                          (workspace-exists? gs)
-                          (remove-frame-from-workspace frame-id)
-                          (update-workspace gs)))))
+                      (some-> gs
+                              (frame-id->workspace frame-id)
+                              (remove-frame-from-workspace frame-id)
+                              (update-workspace gs)))))
