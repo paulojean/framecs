@@ -3,6 +3,8 @@
 (def workspaces
   (atom []))
 
+(defn uuid-str []
+  (str (java.util.UUID/randomUUID) ))
 (defn workspace-filter-fn [workspace-id]
   (comp (partial = workspace-id)
         first))
@@ -82,12 +84,15 @@
                        reverse
                        frame-id))
 
-(defn new-frame! [workspace-id frame-id]
+(defn new-workspace [id]
+  [id []])
+
+(defn new-frame! [current-frame-id new-frame-id]
   (swap! workspaces (fn [gs]
-                      (-> workspace-id
-                          (workspace-exists? gs)
-                          (or [workspace-id []])
-                          (add-frame-to-workspace frame-id)
+                      (-> gs
+                          (frame-id->workspace current-frame-id)
+                          (or (new-workspace (uuid-str)))
+                          (add-frame-to-workspace new-frame-id)
                           (update-workspace gs)))))
 
 (defn remove-frame! [frame-id]
