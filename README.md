@@ -1,5 +1,5 @@
 # Framecs 
-----
+
 Giving more power to `frames` in `emacs` (or, yet another `workspace` library for `emacs`)
 
 ## Installation
@@ -24,3 +24,14 @@ You can clone this repository and add it to emacs path. E.g: you can clone it to
 - `framecs/delete-frame`: delete current frame;
 - `framecs/go-to-next-frame`: go to the frame "on the right" (if the current frame is the laste one, go to the first frame;
 - `framecs/go-to-previous-frame`: go to the frame "on the left" (if the current frame is the first one, go to the last frame;
+
+-------
+
+## TODO
+- [ ] Enable more workspaces (currently all the frames are added to the same workspace)
+- [ ] Persist/Restore session
+  - [ ] Number/order of workspaces
+  - [ ] Buffer positions
+- [ ] Investigate
+  - [ ] Try it whithout `clomacs`(?), to avoid startup time/the need of a server running
+  - [ ] Enable per workspace (or frame) buffer list
