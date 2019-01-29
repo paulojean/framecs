@@ -5,4 +5,7 @@
             :url "https://www.eclipse.org/legal/epl-2.0/"}
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [clomacs "0.0.3-SNAPSHOT"]]
+
+  :profiles {:dev {:dependencies [[org.clojure/test.check "0.9.0"]]}
+             :test {:dependencies [[org.clojure/test.check "0.9.0"]]}}
   :repl-options {:init-ns framecs.core})
