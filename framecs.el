@@ -74,7 +74,7 @@
                   (framecs/has-id id f)))
        first))
 
-(defun framecs/go-to-neighbor (target-frame-fn)
+(defun framecs/go-to-neighbor-frame (target-frame-fn)
   (let* ((frames (framecs/list-frames))
          (current-frame (selected-frame))
          (frame-id (framecs/frame-id current-frame))
@@ -92,14 +92,14 @@
   (delete-frame frame))
 
 ;;;#autoload
-(defun framecs/go-to-previous ()
+(defun framecs/go-to-previous-frame ()
   (interactive)
-  (framecs/go-to-neighbor #'framecs-get-previous-frame))
+  (framecs/go-to-neighbor-frame #'framecs-get-previous-frame))
 
 ;;;#autoload
-(defun framecs/go-to-next ()
+(defun framecs/go-to-next-frame ()
   (interactive)
-  (framecs/go-to-neighbor #'framecs-get-next-frame))
+  (framecs/go-to-neighbor-frame #'framecs-get-next-frame))
 
 ;;;#autoload
 (defun framecs/update-frame-name ()
