@@ -6,14 +6,14 @@ Giving more power to `frames` in `emacs` (or, yet another `workspace` library fo
 
 
 ### Dependencies
-`framecs` uses [`clomacs`](https://github.com/clojure-emacs/clomacs) and [`dash`](https://github.com/magnars/dash.el), so it assumes that you've installed them as well.
+`framecs` uses [`dash`](https://github.com/magnars/dash.el).
 
 ### Initialising
 
-You can clone this repository and add it to emacs path. E.g: you can clone it to `~/.emacs.d/lisp`, then:
+You can copy all `.el` files in this repository and add them to emacs path. E.g: you can put everything in `~/.emacs.d/lisp`, then:
 
 ```el
-(add-to-list 'load-path "~/.emacs.d/lisp/framecs")
+(add-to-list 'load-path "~/.emacs.d/lisp")
 (require 'framecs)
 (framecs/start-framecs)
 ```
@@ -31,7 +31,8 @@ You can clone this repository and add it to emacs path. E.g: you can clone it to
 - [ ] Enable more workspaces (currently all the frames are added to the same workspace)
 - [ ] Persist/Restore session
   - [ ] Number/order of workspaces
-  - [ ] Buffer positions
+  - [ ] window positions
+  - [ ] buffers oppeneds
 - [ ] Investigate
-  - [ ] Try it whithout `clomacs`(?), to avoid startup time/the need of a server running
+  - [x] Try it whithout `clomacs`(?), to avoid startup time/the need of a server running
   - [ ] Enable per workspace (or frame) buffer list
