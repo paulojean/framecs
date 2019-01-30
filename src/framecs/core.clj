@@ -15,7 +15,7 @@
   (swap! workspaces update-fn))
 
 (defn uuid-str []
-  (str (java.util.UUID/randomUUID) ))
+  (str (java.util.UUID/randomUUID)))
 
 (defn workspace-filter-fn [workspace-id]
   (comp (partial = workspace-id)
