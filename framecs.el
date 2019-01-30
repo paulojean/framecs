@@ -60,7 +60,7 @@
 (defun framecs/replace-frames-in-workspace (workspace new-frames)
   (-replace-at 1 new-frames workspace))
 
-(defun framecs/remove-workspave-from-workspaces (workspaces workspace-updated)
+(defun framecs/remove-workspace-from-workspaces (workspaces workspace-updated)
   (-filter (lambda (w)
              (not (equal (first w)
                          (first workspace-udpated))))))
