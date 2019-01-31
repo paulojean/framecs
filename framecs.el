@@ -8,16 +8,11 @@
   (->> (shell-command-to-string "uuidgen")
        (replace-regexp-in-string "\n" "")))
 
-(defun framecs/workspace->frames (workspace)
-  (-> workspace
-      rest
-      first))
-
 (defun framecs/frame-id->workspace (frame-id workspaces)
   (->> workspaces
        (-filter (lambda (workspace)
                   (->> workspace
-                       framecs/workspace->frames
+                       second
                        (member frame-id))))
        first))
 
@@ -60,12 +55,11 @@
 (defun framecs/get-neighbor-frame (workspaces sort-fn frame-id)
   (let ((frames-ids (->> workspaces
                          (framecs/frame-id->workspace frame-id)
-                         framecs/workspace->frames
+                         second
                          (funcall sort-fn))))
     (-> (-drop-while (lambda (frame) (-> frame (equal frame-id) not))
                      frames-ids)
-        rest
-        first
+        second
         (or (first frames-ids)))))
 
 (defun framecs/frame-properties (frame-id)
@@ -97,19 +91,19 @@
       (-concat workspaces `(,workspace-updated)))))
 
 (defun framecs/update-workspaces (workspaces workspace-updated)
-  (if (-> workspace-updated framecs/workspace->frames length (> 0))
+  (if (-> workspace-updated second length (> 0))
     (framecs/upsert-workspace workspaces workspace-updated)
     (framecs/remove-workspace-from-workspaces  workspaces workspace-updated)))
 
 (defun framecs/remove-frame-from-workspaces (workspace frame-id)
   (->> workspace
-       framecs/workspace->frames
+       second
        (remove frame-id)
        (framecs/replace-frames-in-workspace workspace)))
 
 (defun framecs/add-frame-to-workspace (workspace frame-id)
   (-> workspace
-      framecs/workspace->frames
+      second
       (-snoc frame-id)
       ((lambda (frames)
          (framecs/replace-frames-in-workspace workspace frames)))))
