@@ -30,3 +30,14 @@ You can copy all `.el` files in this repository and add them to emacs path. E.g:
 - `framecs/delete-current-workspace`: delete all frames from current workspace and remove it;
 - `framecs/go-to-next-workspace`: go to the workspace "on the right" (if the current workspace is the laste one, go to the first workspace;
 - `framecs/go-to-previous-workspace`: go to the workspace "on the left" (if the current workspace is the first one, go to the last workspace;
+
+## Development
+
+### Dependencies
+
+- [`cask`](https://github.com/cask/cask)
+
+### Running
+
+1. run `cask` (in other to get the dependencies defineds in the `Cask` file)
+2. run `make all`
