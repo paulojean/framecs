@@ -1,6 +1,7 @@
 ;;; framecs -- better frames for emacs
 
 (require 'dash)
+(require 'cl)
 
 (defvar *workspaces* '())
 
@@ -46,8 +47,8 @@
         (or (first workspace-ids))
         (framecs/select-workspace-frame workspaces))))
 
-(defun framecs/frame-by-id (frame-id)
-  (->> (framecs/list-frames)
+(defun framecs/frame-by-id (frame-id frames)
+  (->> frames
        (-filter (lambda (frame)
                   (-> frame framecs/frame-id (equal frame-id))))
        first))
@@ -127,7 +128,7 @@
       framecs/frame-id
       (framecs/frame-id->workspace *workspaces*)
       (framecs/get-neighbor-workspace *workspaces* #'reverse)
-      framecs/frame-by-id
+      (framecs/frame-by-id (framecs/list-frames))
       select-frame))
 
 ;;;#autoload
@@ -137,7 +138,7 @@
       framecs/frame-id
       (framecs/frame-id->workspace *workspaces*)
       (framecs/get-neighbor-workspace *workspaces* #'identity)
-      framecs/frame-by-id
+      (framecs/frame-by-id (framecs/list-frames))
       select-frame))
 
 ;;;#autoload
@@ -146,7 +147,7 @@
   (let* ((frame-id (framecs/frame-id (selected-frame)))
          (workspace (framecs/frame-id->workspace frame-id *workspaces*)))
     (dolist (f-id (second workspace))
-      (framecs/delete-framecs-frame (framecs/frame-by-id f-id)))
+      (framecs/delete-framecs-frame (framecs/frame-by-id f-id (framecs/list-frames))))
     (framecs/remove-workspace-from-workspaces *workspaces* workspace)))
 
 ;;;#autoload
@@ -169,7 +170,8 @@
   (->> (selected-frame)
        framecs/frame-id
        (framecs/get-neighbor-frame *workspaces* #'reverse)
-       framecs/frame-by-id
+       ((lambda (frame-id)
+          (framecs/frame-by-id frame-id (framecs/list-frames))))
        select-frame))
 
 ;;;#autoload
@@ -178,7 +180,8 @@
   (->> (selected-frame)
        framecs/frame-id
        (framecs/get-neighbor-frame *workspaces* #'identity)
-       framecs/frame-by-id
+       ((lambda (frame-id)
+          (framecs/frame-by-id frame-id (framecs/list-frames))))
        select-frame))
 
 ;;;#autoload
