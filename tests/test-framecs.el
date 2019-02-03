@@ -71,7 +71,7 @@
     (expect (framecs/update-workspaces workspaces (-replace-at 1 '() workspace-2))
             :to-equal
             (remove workspace-2 workspaces)))
-  (it "remove workspace when the updated one does not have frames"
+  (it "remove workspace when the updated one does have frames"
     (let* ((update-workspace-2 (-replace-at 1 '("new-id") workspace-2))
            (expected-workspaces (-replace-at 1 update-workspace-2 workspaces)))
       (expect (framecs/update-workspaces workspaces (-replace-at 1 '("new-id") workspace-2))
