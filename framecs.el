@@ -11,11 +11,11 @@
 
 (defun framecs/frame-id->workspace (frame-id workspaces)
   (->> workspaces
-       (-filter (lambda (workspace)
-                  (->> workspace
-                       second
-                       (member frame-id))))
-       first))
+       (-find (lambda (workspace)
+                (->> workspace
+                     second
+                     (gethash :frames)
+                     (member frame-id))))))
 
 (defun framecs/frame-id (frame)
   (->> frame
@@ -30,33 +30,27 @@
   (->> (frame-list)
        (-filter 'framecs/is-framecs-frame)))
 
-(defun framecs/select-workspace-frame (workspace-id workspaces)
-  (->> workspaces
-       (-find (lambda (w) (-> w first (equal workspace-id))))
+(defun framecs/get-active-frame (workspace)
+  (->> workspace
        second
-       first))
+       (gethash :active-frame)))
 
 (defun framecs/get-neighbor-workspace (workspace workspaces sort-fn)
-  (let ((workspace-id (first workspace))
-        (workspace-ids (->> workspaces
-                            (-map 'first)
-                            (funcall sort-fn))))
-    (-> (-drop-while (lambda (workspace) (-> workspace (equal workspace-id) not))
-                     workspace-ids)
+  (let ((workspaces-sorted (funcall sort-fn workspaces)))
+    (-> (-drop-while (lambda (w) (not (equal (first workspace)
+                                             (first w))))
+                     workspaces-sorted)
         second
-        (or (first workspace-ids))
-        (framecs/select-workspace-frame workspaces))))
+        (or (first workspaces-sorted)))))
 
 (defun framecs/frame-by-id (frame-id frames)
-  (->> frames
-       (-filter (lambda (frame)
-                  (-> frame framecs/frame-id (equal frame-id))))
-       first))
+  (-find (lambda (frame) (-> frame framecs/frame-id (equal frame-id)))
+         frames))
 
-(defun framecs/get-neighbor-frame (workspaces sort-fn frame-id)
-  (let ((frames-ids (->> workspaces
-                         (framecs/frame-id->workspace frame-id)
+(defun framecs/get-neighbor-frame (workspace sort-fn frame-id)
+  (let ((frames-ids (->> workspace
                          second
+                         (gethash :frames)
                          (funcall sort-fn))))
     (-> (-drop-while (lambda (frame) (-> frame (equal frame-id) not))
                      frames-ids)
@@ -77,9 +71,9 @@
            workspaces))
 
 (defun framecs/workspace-exists? (workspaces workspace)
-  (->> workspaces
-       (-map (lambda (w) (first w)))
-       (member (first workspace))))
+  (-find (lambda (w) (equal (first w)
+                            (first workspace)))
+         workspaces))
 
 (defun framecs/upsert-workspace (workspaces workspace-updated)
   (let ((workspace-id (first workspace-updated)))
@@ -89,25 +83,37 @@
                   workspace-updated
                 w))
             workspaces)
-      (-concat workspaces `(,workspace-updated)))))
+      (-snoc workspaces workspace-updated))))
 
 (defun framecs/update-workspaces (workspaces workspace-updated)
-  (if (-> workspace-updated second length (> 0))
-    (framecs/upsert-workspace workspaces workspace-updated)
+  (if (->> workspace-updated second (gethash :frames) length (< 0))
+      (framecs/upsert-workspace workspaces workspace-updated)
     (framecs/remove-workspace-from-workspaces  workspaces workspace-updated)))
 
-(defun framecs/remove-frame-from-workspaces (workspace frame-id)
-  (->> workspace
-       second
-       (remove frame-id)
-       (framecs/replace-frames-in-workspace workspace)))
+(defun framecs/next-active-frame (frames current-active)
+  (-> (-find-index (lambda (frame) (equal current-active frame))
+                   frames)
+      (+ 1)
+      (nth frames)
+      (or (first frames))))
+
+(defun framecs/remove-frame-from-workspace (workspace frame-id)
+  (let* ((workspace-data (second workspace))
+         (new-data (copy-hash-table workspace-data))
+         (frames (gethash :frames new-data))
+         (next-active-frame (framecs/next-active-frame frames
+                                                       (gethash :active-frame new-data))))
+    (puthash :active-frame next-active-frame new-data)
+    (puthash :frames (remove frame-id frames) new-data)
+    (framecs/replace-frames-in-workspace workspace new-data)))
 
 (defun framecs/add-frame-to-workspace (workspace frame-id)
-  (-> workspace
-      second
-      (-snoc frame-id)
-      ((lambda (frames)
-         (framecs/replace-frames-in-workspace workspace frames)))))
+  (let* ((workspace-data (second workspace))
+         (new-data (copy-hash-table workspace-data))
+         (frames (gethash :frames new-data)))
+    (puthash :active-frame frame-id new-data)
+    (puthash :frames (-snoc frames frame-id) new-data)
+    (framecs/replace-frames-in-workspace workspace new-data)))
 
 (defun framecs/delete-framecs-frame (current-frame)
   (let* ((frame-id (framecs/frame-id current-frame))
@@ -115,8 +121,8 @@
     (delete-frame current-frame)
     (setq *workspaces*
           (framecs/update-workspaces *workspaces*
-                                     (framecs/remove-frame-from-workspaces workspace
-                                                                           frame-id)))))
+                                     (framecs/remove-frame-from-workspace workspace
+                                                                          frame-id)))))
 
 (defun framecs/update-frame-properties! (frame properties)
   (modify-frame-parameters frame properties))
@@ -128,6 +134,7 @@
       framecs/frame-id
       (framecs/frame-id->workspace *workspaces*)
       (framecs/get-neighbor-workspace *workspaces* #'reverse)
+      framecs/get-active-frame
       (framecs/frame-by-id (framecs/list-frames))
       select-frame))
 
@@ -138,16 +145,18 @@
       framecs/frame-id
       (framecs/frame-id->workspace *workspaces*)
       (framecs/get-neighbor-workspace *workspaces* #'identity)
+      framecs/get-active-frame
       (framecs/frame-by-id (framecs/list-frames))
       select-frame))
 
 ;;;#autoload
 (defun framecs/delete-current-workspace ()
   (interactive)
-  (let* ((frame-id (framecs/frame-id (selected-frame)))
+  (let* ((frames (framecs/list-frames))
+         (frame-id (framecs/frame-id (selected-frame)))
          (workspace (framecs/frame-id->workspace frame-id *workspaces*)))
-    (dolist (f-id (second workspace))
-      (framecs/delete-framecs-frame (framecs/frame-by-id f-id (framecs/list-frames))))
+    (dolist (f-id (->> workspace second (gethash :frames)))
+      (framecs/delete-framecs-frame (framecs/frame-by-id f-id frames)))
     (framecs/remove-workspace-from-workspaces *workspaces* workspace)))
 
 ;;;#autoload
@@ -161,28 +170,37 @@
          select-frame)
     (setq *workspaces*
           (framecs/update-workspaces *workspaces*
-                                     (framecs/add-frame-to-workspace `(,workspace-id ())
+                                     (framecs/add-frame-to-workspace (list workspace-id (make-hash-table :test 'equal))
                                                                      frame-id)))))
+
+(defun framecs/update-active-frame (workspace frame-id)
+  (let ((new-data (copy-hash-table (second workspace))))
+    (puthash :active-frame frame-id new-data)
+    (framecs/replace-frames-in-workspace workspace new-data)))
 
 ;;;#autoload
 (defun framecs/go-to-previous-frame ()
   (interactive)
-  (->> (selected-frame)
-       framecs/frame-id
-       (framecs/get-neighbor-frame *workspaces* #'reverse)
-       ((lambda (frame-id)
-          (framecs/frame-by-id frame-id (framecs/list-frames))))
-       select-frame))
+  (let* ((current-frame-id (framecs/frame-id (selected-frame)))
+         (workspace (framecs/frame-id->workspace current-frame-id *workspaces*))
+         (next-frame-id (framecs/get-neighbor-frame workspace #'reverse current-frame-id)))
+    (-> next-frame-id
+        (framecs/frame-by-id (framecs/list-frames))
+        select-frame)
+    (setq *workspaces* (framecs/update-workspaces *workspaces*
+                                                  (framecs/update-active-frame workspace next-frame-id)))))
 
 ;;;#autoload
 (defun framecs/go-to-next-frame ()
   (interactive)
-  (->> (selected-frame)
-       framecs/frame-id
-       (framecs/get-neighbor-frame *workspaces* #'identity)
-       ((lambda (frame-id)
-          (framecs/frame-by-id frame-id (framecs/list-frames))))
-       select-frame))
+  (let* ((current-frame-id (framecs/frame-id (selected-frame)))
+         (workspace (framecs/frame-id->workspace current-frame-id *workspaces*))
+         (next-frame-id (framecs/get-neighbor-frame workspace #'identity current-frame-id)))
+    (-> next-frame-id
+        (framecs/frame-by-id (framecs/list-frames))
+        select-frame)
+    (setq *workspaces* (framecs/update-workspaces *workspaces*
+                                                  (framecs/update-active-frame workspace next-frame-id)))))
 
 ;;;#autoload
 (defun framecs/delete-frame ()
@@ -204,8 +222,8 @@
          select-frame)
     (setq *workspaces*
           (framecs/update-workspaces *workspaces*
-                               (framecs/add-frame-to-workspace workspace
-                                                               new-frame-id)))))
+                                     (framecs/add-frame-to-workspace workspace
+                                                                     new-frame-id)))))
 
 ;;;#autoload
 (defun framecs/start-framecs ()
@@ -216,7 +234,7 @@
       (->> (framecs/frame-properties frame-id)
            (framecs/update-frame-properties! (selected-frame)))
       (setq *workspaces* (framecs/update-workspaces *workspaces*
-                                                    (framecs/add-frame-to-workspace `(,workspace-id ())
+                                                    (framecs/add-frame-to-workspace (list workspace-id (make-hash-table :test 'equal))
                                                                                     frame-id))))))
 
 (provide 'framecs)
