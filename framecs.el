@@ -1,4 +1,4 @@
-;;; framecs -- better frames for emacs
+;;; framecs -- better frames for emacs -*- lexical-binding: t; -*-
 
 (require 'dash)
 (require 'cl)
@@ -103,9 +103,12 @@
          (frames (gethash :frames new-data))
          (next-active-frame (framecs/next-active-frame frames
                                                        (gethash :active-frame new-data))))
-    (puthash :active-frame next-active-frame new-data)
-    (puthash :frames (remove frame-id frames) new-data)
-    (framecs/replace-frames-in-workspace workspace new-data)))
+    (if (-> frame-id (member frames) not)
+      workspace
+      (progn
+        (puthash :active-frame next-active-frame new-data)
+        (puthash :frames (remove frame-id frames) new-data)
+        (framecs/replace-frames-in-workspace workspace new-data)))))
 
 (defun framecs/add-frame-to-workspace (workspace frame-id)
   (let* ((workspace-data (second workspace))

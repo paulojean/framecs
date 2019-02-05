@@ -31,7 +31,8 @@
     (let*  ((frames (-> (selected-frame)
                         framecs/frame-id
                         (framecs/frame-id->workspace *workspaces*)
-                        second))
+                        second
+                        ((lambda (data) (gethash :frames data)))))
             (nth-frame (-> (nth (string-to-number position) frames)
                            (framecs/frame-by-id (framecs/list-frames)))))
       (should (equal nth-frame
@@ -43,7 +44,8 @@
     (let* ((frames (-> (selected-frame)
                        framecs/frame-id
                        (framecs/frame-id->workspace *workspaces*)
-                       second)))
+                       second
+                       ((lambda (data) (gethash :frames data))))))
       (framecs/go-to-previous-frame)
       (should (equal (selected-frame)
                      (framecs/frame-by-id (second frames) (framecs/list-frames))))

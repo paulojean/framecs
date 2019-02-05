@@ -2,12 +2,12 @@ EMACS ?= emacs
 CASK ?= cask
 
 .PHONY: all
-all: unit feature
+all: unit-tests feature-tests
 
-.PHONY: unit
-unit:
+.PHONY: unit-tests
+unit-tests:
 	$(CASK) exec buttercup -L .
 
-.PHONY: feature
-feature:
+.PHONY: feature-tests
+feature-tests:
 	$(CASK) exec ecukes --no-win

@@ -37,7 +37,7 @@ You can copy all `.el` files in this repository and add them to emacs path. E.g:
 
 - [`cask`](https://github.com/cask/cask)
 
-### Running
+### Running tests
 
 1. run `cask` (in other to get the dependencies defineds in the `Cask` file)
-2. run `make all`
+2. run `make all` (to run unit and feature tests)
