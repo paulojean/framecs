@@ -41,11 +41,11 @@
 (And "I can create and delete a new frame"
   (lambda ()
     (framecs/new-frame)
-    (let* ((frames (-> (selected-frame)
-                       framecs/frame-id
-                       (framecs/frame-id->workspace *workspaces*)
-                       second
-                       ((lambda (data) (gethash :frames data))))))
+    (let ((frames (-> (selected-frame)
+                      framecs/frame-id
+                      (framecs/frame-id->workspace *workspaces*)
+                      second
+                      ((lambda (data) (gethash :frames data))))))
       (framecs/go-to-previous-frame)
       (should (equal (selected-frame)
                      (framecs/frame-by-id (second frames) (framecs/list-frames))))
@@ -60,13 +60,13 @@
 
 (Then "I am in workspace number \"\\([^\"]+\\)\"$"
   (lambda (position)
-    (let*  ((workspace (-> (selected-frame)
-                           framecs/frame-id
-                           (framecs/frame-id->workspace *workspaces*)
-                           first))
-            (nth-workspace (->> *workspaces*
-                                (nth (string-to-number position))
-                                first)))
+    (let  ((workspace (-> (selected-frame)
+                          framecs/frame-id
+                          (framecs/frame-id->workspace *workspaces*)
+                          first))
+           (nth-workspace (->> *workspaces*
+                               (nth (string-to-number position))
+                               first)))
       (should (equal workspace
                      nth-workspace)))) )
 

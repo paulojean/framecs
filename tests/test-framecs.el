@@ -47,10 +47,9 @@
   (and (equal (length workspace-1)
               (length workspace-2))
        (->> workspace-1
-            (-map-indexed (lambda (index w)
-                            (equal-workspace? w
-                                              (nth index workspace-2))))
-            (-all? (lambda (w) (equal w t))))))
+            (--map-indexed (equal-workspace? it
+                                             (nth it-index workspace-2)))
+            (--all? it))))
 
 (describe "Framecs id property"
   (it "Properly generate data structure"
