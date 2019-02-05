@@ -10,12 +10,11 @@
        (replace-regexp-in-string "\n" "")))
 
 (defun framecs/frame-id->workspace (frame-id workspaces)
-  (->> workspaces
-       (-find (lambda (workspace)
-                (->> workspace
-                     second
-                     (gethash :frames)
-                     (member frame-id))))))
+  (--find (->> it
+               second
+               (gethash :frames)
+               (member frame-id))
+          workspaces))
 
 (defun framecs/frame-id (frame)
   (->> frame
@@ -37,14 +36,14 @@
 
 (defun framecs/get-neighbor-workspace (workspace workspaces sort-fn)
   (let ((workspaces-sorted (funcall sort-fn workspaces)))
-    (-> (-drop-while (lambda (w) (not (equal (first workspace)
-                                             (first w))))
-                     workspaces-sorted)
+    (-> (--drop-while (not (equal (first it)
+                                  (first workspace)))
+                      workspaces-sorted)
         second
         (or (first workspaces-sorted)))))
 
 (defun framecs/frame-by-id (frame-id frames)
-  (-find (lambda (frame) (-> frame framecs/frame-id (equal frame-id)))
+  (--find (-> it framecs/frame-id (equal frame-id))
          frames))
 
 (defun framecs/get-neighbor-frame (workspace sort-fn frame-id)
@@ -52,8 +51,9 @@
                          second
                          (gethash :frames)
                          (funcall sort-fn))))
-    (-> (-drop-while (lambda (frame) (-> frame (equal frame-id) not))
-                     frames-ids)
+    (-> (--drop-while (not (equal it
+                                  frame-id))
+                      frames-ids)
         second
         (or (first frames-ids)))))
 
@@ -65,22 +65,21 @@
   (-replace-at 1 new-frames workspace))
 
 (defun framecs/remove-workspace-from-workspaces (workspaces workspace-updated)
-  (-filter (lambda (w)
-             (not (equal (first w)
-                         (first workspace-updated))))
-           workspaces))
+  (--filter (not (equal (first it)
+                        (first workspace-updated)))
+            workspaces))
 
 (defun framecs/workspace-exists? (workspaces workspace)
-  (-find (lambda (w) (equal (first w)
-                            (first workspace)))
-         workspaces))
+  (--find (equal (first it)
+                 (first workspace))
+          workspaces))
 
 (defun framecs/upsert-workspace (workspaces workspace-updated)
   (let ((workspace-id (first workspace-updated)))
     (if (framecs/workspace-exists? workspaces workspace-updated)
       (-map (lambda (w)
               (if (equal workspace-id (first w))
-                  workspace-updated
+                workspace-updated
                 w))
             workspaces)
       (-snoc workspaces workspace-updated))))
@@ -91,8 +90,8 @@
     (framecs/remove-workspace-from-workspaces  workspaces workspace-updated)))
 
 (defun framecs/next-active-frame (frames current-active)
-  (-> (-find-index (lambda (frame) (equal current-active frame))
-                   frames)
+  (-> (--find-index (equal it current-active)
+                    frames)
       (+ 1)
       (nth frames)
       (or (first frames))))
