@@ -5,6 +5,12 @@
 
 (defvar *workspaces* '())
 
+(defvar framecs/display-frames-fn nil
+  "Handler function to display frames list")
+
+(defun framecs/apply-first (f coll)
+  `(,(funcall f (first coll)) . ,(cdr coll)))
+
 (defun framecs/gen-uuid ()
   (->> (shell-command-to-string "uuidgen")
        (replace-regexp-in-string "\n" "")))
@@ -128,6 +134,30 @@
 
 (defun framecs/update-frame-properties! (frame properties)
   (modify-frame-parameters frame properties))
+
+(defun framecs/select-frame-id-from-workspace (frames workspace)
+  (->> workspace
+       second
+       (gethash :frames)
+       (--map `(,(framecs/frame-by-id it frames) . ,it))
+       (--map (framecs/apply-first 'frame-selected-window it))
+       (--map (framecs/apply-first 'window-buffer it))
+       (--map (framecs/apply-first 'buffer-name it))
+       (funcall framecs/display-frames-fn)))
+
+;;;autoload
+(defun framecs/select-frame-from-current-workspace ()
+  (interactive)
+  (let* ((frames (framecs/list-frames))
+         (workspace (-> (selected-frame)
+                        framecs/frame-id
+                        (framecs/frame-id->workspace *workspaces*)))
+         (frame-id (framecs/select-frame-id-from-workspace frames workspace)))
+    (-> frame-id
+        (framecs/frame-by-id frames)
+        select-frame)
+    (setq *workspaces* (framecs/update-workspaces *workspaces*
+                                                  (framecs/update-active-frame workspace frame-id)))))
 
 ;;;#autoload
 (defun framecs/go-to-previous-workspace ()
