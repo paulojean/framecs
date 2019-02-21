@@ -53,7 +53,7 @@
 
 (defun framecs/frame-by-id (frame-id frames)
   (--find (-> it framecs/frame-id (equal frame-id))
-         frames))
+          frames))
 
 (defun framecs/get-neighbor-frame (workspace sort-fn frame-id)
   (let ((frames-ids (->> workspace
@@ -86,11 +86,11 @@
 (defun framecs/upsert-workspace (workspaces workspace-updated)
   (let ((workspace-id (first workspace-updated)))
     (if (framecs/workspace-exists? workspaces workspace-updated)
-      (-map (lambda (w)
-              (if (equal workspace-id (first w))
-                workspace-updated
-                w))
-            workspaces)
+        (-map (lambda (w)
+                (if (equal workspace-id (first w))
+                    workspace-updated
+                  w))
+              workspaces)
       (-snoc workspaces workspace-updated))))
 
 (defun framecs/update-workspaces (workspaces workspace-updated)
@@ -112,7 +112,7 @@
          (next-active-frame (framecs/next-active-frame frames
                                                        (gethash :active-frame new-data))))
     (if (-> frame-id (member frames) not)
-      workspace
+        workspace
       (progn
         (puthash :active-frame next-active-frame new-data)
         (puthash :frames (remove frame-id frames) new-data)
@@ -139,9 +139,9 @@
 
 (defun framecs/format-buffer-display-name (buffer)
   (if framecs/display-full-path-when-showing-buffer
-    (format "%s => %s"
-            (buffer-name buffer)
-            (buffer-file-name buffer))
+      (format "%s => %s"
+              (buffer-name buffer)
+              (buffer-file-name buffer))
     (buffer-name buffer)))
 
 (defun framecs/select-frame-id-from-workspace (frames workspace)
@@ -272,7 +272,7 @@
   (interactive)
   (let ((current-frame (selected-frame)))
     (if (framecs/is-framecs-frame current-frame)
-      (framecs/delete-framecs-frame current-frame)
+        (framecs/delete-framecs-frame current-frame)
       (framecs/delete-non-framecs-frame))))
 
 ;;;#autoload
