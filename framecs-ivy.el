@@ -2,8 +2,8 @@
 
 (require 'ivy)
 
-(setq framecs/display-frames-fn (lambda (frames)
-                                  (cdr (assoc (ivy-read "Frames from current workspace" frames) frames))))
+(setq framecs/display-frames-fn (lambda (display-message frames)
+                                  (cdr (assoc (ivy-read display-message frames) frames))))
 
 (provide 'framecs-ivy)
 

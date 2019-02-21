@@ -117,8 +117,7 @@
 
 (defun framecs/add-frame-to-workspace (workspace frame-id)
   (let* ((workspace-data (second workspace))
-         (new-data (copy-hash-table workspace-data))
-         (frames (gethash :frames new-data)))
+         (new-data (copy-hash-table workspace-data)) (frames (gethash :frames new-data)))
     (puthash :active-frame frame-id new-data)
     (puthash :frames (-snoc frames frame-id) new-data)
     (framecs/replace-frames-in-workspace workspace new-data)))
@@ -143,7 +142,20 @@
        (--map (framecs/apply-first 'frame-selected-window it))
        (--map (framecs/apply-first 'window-buffer it))
        (--map (framecs/apply-first 'buffer-name it))
-       (funcall framecs/display-frames-fn)))
+       ((lambda (m)
+          (funcall framecs/display-frames-fn "Frames from current workspace" m)))))
+
+;;;autoload
+(defun framecs/select-workspace ()
+  (interactive)
+  (->> *workspaces*
+       (--map-indexed `(,(gethash :name (second it) (int-to-string it-index))
+                        .
+                        ,(framecs/get-active-frame it)))
+       (funcall framecs/display-frames-fn "Workspaces")
+       ((lambda (frame-id)
+          (framecs/frame-by-id frame-id (framecs/list-frames))))
+       select-frame-set-input-focus))
 
 ;;;autoload
 (defun framecs/select-frame-from-current-workspace ()
