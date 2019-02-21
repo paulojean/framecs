@@ -8,6 +8,9 @@
 (defvar framecs/display-frames-fn nil
   "Handler function to display frames list")
 
+(defvar framecs/display-full-path-when-showing-buffer t
+  "Display full path, next to buffer name")
+
 (defun framecs/apply-first (f coll)
   `(,(funcall f (first coll)) . ,(cdr coll)))
 
@@ -134,6 +137,13 @@
 (defun framecs/update-frame-properties! (frame properties)
   (modify-frame-parameters frame properties))
 
+(defun framecs/format-buffer-display-name (buffer)
+  (if framecs/display-full-path-when-showing-buffer
+    (format "%s => %s"
+            (buffer-name buffer)
+            (buffer-file-name buffer))
+    (buffer-name buffer)))
+
 (defun framecs/select-frame-id-from-workspace (frames workspace)
   (->> workspace
        second
@@ -141,7 +151,7 @@
        (--map `(,(framecs/frame-by-id it frames) . ,it))
        (--map (framecs/apply-first 'frame-selected-window it))
        (--map (framecs/apply-first 'window-buffer it))
-       (--map (framecs/apply-first 'buffer-name it))
+       (--map (framecs/apply-first 'framecs/format-buffer-display-name it))
        ((lambda (m)
           (funcall framecs/display-frames-fn "Frames from current workspace" m)))))
 
