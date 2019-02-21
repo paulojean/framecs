@@ -30,7 +30,7 @@
   (lambda (position)
     (let*  ((frames (-> (selected-frame)
                         framecs/frame-id
-                        (framecs/frame-id->workspace *workspaces*)
+                        (framecs/frame-id->workspace framecs/*workspaces*)
                         second
                         ((lambda (data) (gethash :frames data)))))
             (nth-frame (-> (nth (string-to-number position) frames)
@@ -43,7 +43,7 @@
     (framecs/new-frame)
     (let ((frames (-> (selected-frame)
                       framecs/frame-id
-                      (framecs/frame-id->workspace *workspaces*)
+                      (framecs/frame-id->workspace framecs/*workspaces*)
                       second
                       ((lambda (data) (gethash :frames data))))))
       (framecs/go-to-previous-frame)
@@ -62,9 +62,9 @@
   (lambda (position)
     (let  ((workspace (-> (selected-frame)
                           framecs/frame-id
-                          (framecs/frame-id->workspace *workspaces*)
+                          (framecs/frame-id->workspace framecs/*workspaces*)
                           first))
-           (nth-workspace (->> *workspaces*
+           (nth-workspace (->> framecs/*workspaces*
                                (nth (string-to-number position))
                                first)))
       (should (equal workspace
@@ -73,7 +73,7 @@
 (Then "There are \"\\([^\"]+\\)\" workspaces and \"\\([^\"]+\\)\" frames"
   (lambda (workspaces frames)
     (should (equal (string-to-number workspaces)
-                   (length *workspaces*)))
+                   (length framecs/*workspaces*)))
     (should (equal (string-to-number frames)
                    (length (framecs/list-frames))))))
 
