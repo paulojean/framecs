@@ -155,6 +155,17 @@
        ((lambda (m)
           (funcall framecs/display-frames-fn "Frames from current workspace" m)))))
 
+;;;#autoload
+(defun framecs/rename-workspace (name)
+  (interactive "sWorkspace name:")
+  (let* ((workspace (-> (selected-frame)
+                        framecs/frame-id
+                        (framecs/frame-id->workspace *workspaces*)))
+         (workspace-data (copy-hash-table (second workspace))))
+    (puthash :name name workspace-data)
+    (setq *workspaces* (framecs/update-workspaces *workspaces*
+                                                  (framecs/replace-frames-in-workspace workspace workspace-data)))))
+
 ;;;autoload
 (defun framecs/select-workspace ()
   (interactive)
