@@ -101,12 +101,13 @@
               :to-equal
               (->> workspace-2 second (gethash :frames) first)))))
 
-(describe "update workspaces"
+(describe "update workspace in workspaces"
   (it "remove workspace when the updated one does not have frames"
-    (let ((updated-workspaces (framecs/update-workspaces workspaces
-                                                         (-replace-at 1
-                                                                      (create-frames-data '() "")
-                                                                      workspace-2))))
+    (let ((updated-workspaces (framecs/update-workspace-in-workspaces
+                               (-replace-at 1
+                                            (create-frames-data '() "")
+                                            workspace-2)
+                               workspaces)))
       (expect (equal-workspaces? (-remove-at 1 workspaces)
                                  updated-workspaces)
               :to-be-truthy)))
@@ -115,8 +116,9 @@
                                             (create-frames-data '("new-id") "new-id")
                                             workspace-2))
            (expected-workspaces (-replace-at 1 update-workspace-2 workspaces)))
-      (expect (equal-workspaces? (framecs/update-workspaces workspaces
-                                                            update-workspace-2)
+      (expect (equal-workspaces? (framecs/update-workspace-in-workspaces
+                                  update-workspace-2
+                                  workspaces)
                                  expected-workspaces)
               :to-be-truthy)))
   (it "add workspace in the last positions, when it does not exist yet"

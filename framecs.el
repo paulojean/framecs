@@ -98,6 +98,14 @@
       (framecs/upsert-workspace workspaces workspace-updated)
     (framecs/remove-workspace-from-workspaces  workspaces workspace-updated)))
 
+(defun framecs/update-workspace-in-workspaces (workspace workspaces)
+  (if (-some->> workspace second (gethash :frames) length (< 0))
+      (framecs/upsert-workspace workspaces workspace)
+    (framecs/remove-workspace-from-workspaces workspaces workspace)))
+
+(defun framecs/update-workspace-in-workspaces! (workspace)
+  (setq *workspaces* (framecs/update-workspace-in-workspaces workspace *workspaces*)))
+
 (defun framecs/next-active-frame (frames current-active)
   (-> (--find-index (equal it current-active)
                     frames)
@@ -129,10 +137,8 @@
   (let* ((frame-id (framecs/frame-id current-frame))
          (workspace (framecs/frame-id->workspace frame-id *workspaces*)))
     (delete-frame current-frame)
-    (setq *workspaces*
-          (framecs/update-workspaces *workspaces*
-                                     (framecs/remove-frame-from-workspace workspace
-                                                                          frame-id)))))
+    (framecs/update-workspace-in-workspaces!
+     (framecs/remove-frame-from-workspace workspace frame-id))))
 
 (defun framecs/update-frame-properties! (frame properties)
   (modify-frame-parameters frame properties))
@@ -163,8 +169,8 @@
                         (framecs/frame-id->workspace *workspaces*)))
          (workspace-data (copy-hash-table (second workspace))))
     (puthash :name name workspace-data)
-    (setq *workspaces* (framecs/update-workspaces *workspaces*
-                                                  (framecs/replace-frames-in-workspace workspace workspace-data)))))
+    (framecs/update-workspace-in-workspaces!
+     (framecs/replace-frames-in-workspace workspace workspace-data))))
 
 ;;;autoload
 (defun framecs/select-workspace ()
@@ -189,8 +195,8 @@
     (-> frame-id
         (framecs/frame-by-id frames)
         select-frame-set-input-focus)
-    (setq *workspaces* (framecs/update-workspaces *workspaces*
-                                                  (framecs/update-active-frame workspace frame-id)))))
+    (framecs/update-workspace-in-workspaces!
+     (framecs/update-active-frame workspace frame-id))))
 
 ;;;#autoload
 (defun framecs/go-to-previous-workspace ()
@@ -222,7 +228,8 @@
          (workspace (framecs/frame-id->workspace frame-id *workspaces*)))
     (dolist (f-id (->> workspace second (gethash :frames)))
       (framecs/delete-framecs-frame (framecs/frame-by-id f-id frames)))
-    (framecs/remove-workspace-from-workspaces *workspaces* workspace)))
+    (framecs/update-workspace-in-workspaces!
+     (framecs/remove-workspace-from-workspaces *workspaces* workspace))))
 
 ;;;#autoload
 (defun framecs/new-workspace ()
@@ -233,10 +240,9 @@
          framecs/frame-properties
          new-frame
          select-frame-set-input-focus)
-    (setq *workspaces*
-          (framecs/update-workspaces *workspaces*
-                                     (framecs/add-frame-to-workspace (list workspace-id (make-hash-table :test 'equal))
-                                                                     frame-id)))))
+    (framecs/update-workspace-in-workspaces!
+     (framecs/add-frame-to-workspace (list workspace-id (make-hash-table :test 'equal))
+                                     frame-id))))
 
 (defun framecs/update-active-frame (workspace frame-id)
   (let ((new-data (copy-hash-table (second workspace))))
@@ -252,8 +258,7 @@
     (-> next-frame-id
         (framecs/frame-by-id (framecs/list-frames))
         select-frame-set-input-focus)
-    (setq *workspaces* (framecs/update-workspaces *workspaces*
-                                                  (framecs/update-active-frame workspace next-frame-id)))))
+    (framecs/update-workspace-in-workspaces! (framecs/update-active-frame workspace next-frame-id))))
 
 ;;;#autoload
 (defun framecs/go-to-next-frame ()
@@ -264,8 +269,7 @@
     (-> next-frame-id
         (framecs/frame-by-id (framecs/list-frames))
         select-frame-set-input-focus)
-    (setq *workspaces* (framecs/update-workspaces *workspaces*
-                                                  (framecs/update-active-frame workspace next-frame-id)))))
+    (framecs/update-workspace-in-workspaces! (framecs/update-active-frame workspace next-frame-id))))
 
 ;;;#autoload
 (defun framecs/delete-frame ()
@@ -285,10 +289,8 @@
          framecs/frame-properties
          new-frame
          select-frame-set-input-focus)
-    (setq *workspaces*
-          (framecs/update-workspaces *workspaces*
-                                     (framecs/add-frame-to-workspace workspace
-                                                                     new-frame-id)))))
+    (framecs/update-workspace-in-workspaces! (framecs/add-frame-to-workspace workspace
+                                                                             new-frame-id))))
 
 ;;;#autoload
 (defun framecs/start-framecs ()
@@ -298,9 +300,10 @@
           (workspace-id (framecs/gen-uuid)))
       (->> (framecs/frame-properties frame-id)
            (framecs/update-frame-properties! (selected-frame)))
-      (setq *workspaces* (framecs/update-workspaces *workspaces*
-                                                    (framecs/add-frame-to-workspace (list workspace-id (make-hash-table :test 'equal))
-                                                                                    frame-id))))))
+      (framecs/update-workspace-in-workspaces!
+       (framecs/add-frame-to-workspace (list workspace-id
+                                             (make-hash-table :test 'equal))
+                                       frame-id)))))
 
 (provide 'framecs)
 
